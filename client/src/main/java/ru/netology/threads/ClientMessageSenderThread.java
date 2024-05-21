@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 public class ClientMessageSenderThread implements Runnable {
     private final Client CLIENT;
     private final Socket CLIENT_SOCKET;
+    private BufferedWriter writer;
 
     public ClientMessageSenderThread(Client client, Socket clientSocket) {
         this.CLIENT = client;
@@ -17,25 +18,27 @@ public class ClientMessageSenderThread implements Runnable {
 
     @Override
     public void run() {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(CLIENT_SOCKET.getOutputStream(), StandardCharsets.UTF_8));
-             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
-            String name = reader.readLine();
-            sendMessage(writer, name);
+        try {
+            writer = new BufferedWriter(new OutputStreamWriter(CLIENT_SOCKET.getOutputStream(), StandardCharsets.UTF_8));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
 
-            while (true) {
+            String name = reader.readLine();
+            sendMessage(name);
+
+            while (!CLIENT_SOCKET.isClosed()) {
                 String message = reader.readLine();
                 if (message.equalsIgnoreCase("/exit")) {
                     CLIENT.stopClient(CLIENT_SOCKET);
                     break;
                 }
-                sendMessage(writer, name + ": " + message);
+                sendMessage(name + ": " + message);
             }
         } catch (IOException e) {
             CLIENT.stopClient(CLIENT_SOCKET);
         }
     }
 
-    public synchronized void sendMessage(BufferedWriter writer, String message) {
+    public synchronized void sendMessage(String message) {
         try {
             writer.write(message);
             writer.newLine();

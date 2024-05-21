@@ -25,6 +25,7 @@ public class ConnectionReceiverThread implements Runnable {
             writer = new BufferedWriter(new OutputStreamWriter(SOCKET.getOutputStream(), StandardCharsets.UTF_8));
 
             SERVER.onConnectionReady(ConnectionReceiverThread.this);
+
             String SERVER_NAME = "SERVER";
             CLIENT_NAME = reader.readLine();
             SERVER.onReceiveMessage(SERVER_NAME + ": Client " + SOCKET.getInetAddress() + ": " + SOCKET.getPort() + " has chosen the nickname - " + CLIENT_NAME + ".");
@@ -38,13 +39,12 @@ public class ConnectionReceiverThread implements Runnable {
                     }
                     SERVER.onReceiveMessage(response);
                 } catch (NullPointerException e) {
-                    SERVER.onDisconnect(this);
+                    disconnect();
                     break;
                 }
             }
         } catch (IOException e) {
             disconnect();
-            SERVER.onException(e);
         }
     }
 
@@ -54,7 +54,7 @@ public class ConnectionReceiverThread implements Runnable {
             writer.newLine();
             writer.flush();
         } catch (IOException e) {
-            SERVER.onException(e);
+            SERVER.onException("Send Message Exception", e);
             disconnect();
         }
     }
@@ -76,5 +76,4 @@ public class ConnectionReceiverThread implements Runnable {
     public String toString() {
         return SOCKET.getInetAddress() + ": " + SOCKET.getPort();
     }
-
 }

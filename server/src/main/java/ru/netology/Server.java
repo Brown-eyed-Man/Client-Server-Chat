@@ -8,11 +8,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Server {
-    private static ServerSocket SERVER_SOCKET;
     private static final int PORT = 27015;
     private static final List<ConnectionReceiverThread> CLIENT_CONNECTIONS = new CopyOnWriteArrayList<>();
-    private Thread clientProcessorThread;
-    private Thread connectionReceiverThread;
 
     public static void main(String[] args) {
         new Server();
@@ -20,29 +17,33 @@ public class Server {
 
     private Server() {
         try {
-            SERVER_SOCKET = new ServerSocket(PORT);
+            ServerSocket SERVER_SOCKET = new ServerSocket(PORT);
             sendMessageToAllClients("Server has been launched.");
 
-            clientProcessorThread = new Thread(new ClientProcessorThread(this));
+            Thread clientProcessorThread = new Thread(new ClientProcessorThread(this, SERVER_SOCKET));
             clientProcessorThread.start();
 
-            while (true) {
+            while (!SERVER_SOCKET.isClosed()) {
                 try {
                     Socket socket = SERVER_SOCKET.accept();
-                    connectionReceiverThread = new Thread(new ConnectionReceiverThread(this, socket));
+                    Thread connectionReceiverThread = new Thread(new ConnectionReceiverThread(this, socket));
                     connectionReceiverThread.start();
                 } catch (IOException e) {
                     return;
                 }
             }
         } catch (IOException e) {
-            onException(e);
+            onException("Critical Error", e);
         }
     }
 
     public synchronized void onConnectionReady(ConnectionReceiverThread connection) {
-        CLIENT_CONNECTIONS.add(connection);
         sendMessageToAllClients("New client connected: " + connection);
+        CLIENT_CONNECTIONS.add(connection);
+        connection.sendMessage("You connected to Chat.");
+        connection.sendMessage("To send any message, please, write it and press \"Enter\".");
+        connection.sendMessage("If you want to leave this Chat - just write \"/exit\".\n");
+        connection.sendMessage("Please, Introduce yourself:");
     }
 
     public synchronized void onReceiveMessage(String value) {
@@ -50,31 +51,17 @@ public class Server {
     }
 
     public synchronized void onDisconnect(ConnectionReceiverThread connection) {
-        CLIENT_CONNECTIONS.remove(connection);
-        sendMessageToAllClients(String.format("Client %s:%d (%s) disconnected.",
-                connection.getSOCKET().getInetAddress(),
-                connection.getSOCKET().getPort(),
-                connection.getCLIENT_NAME()));
-    }
-
-    public synchronized void onException(Exception e) {
-        System.out.println("Exception: " + e);
-        ChatLogger.getInstance().log("Exception: " + e);
-    }
-
-    public synchronized void closeServer() {
-        try {
-            for (ConnectionReceiverThread client : CLIENT_CONNECTIONS) {
-                CLIENT_CONNECTIONS.remove(client);
-                client.disconnect();
-            }
-            clientProcessorThread.interrupt();
-            connectionReceiverThread.interrupt();
-            SERVER_SOCKET.close();
-            sendMessageToAllClients("Server has been stopped.\n");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (CLIENT_CONNECTIONS.remove(connection)) {
+            sendMessageToAllClients(String.format("Client %s:%d \"%s\" disconnected.",
+                    connection.getSOCKET().getInetAddress(),
+                    connection.getSOCKET().getPort(),
+                    connection.getCLIENT_NAME()));
         }
+    }
+
+    public synchronized void onException(String exceptionType, Exception e) {
+        System.out.println(exceptionType + ": " + e);
+        ChatLogger.getInstance().log(exceptionType + ": " + e);
     }
 
     public void sendMessageToAllClients(String message) {

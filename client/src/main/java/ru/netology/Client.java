@@ -36,27 +36,20 @@ public class Client {
 
         try {
             Socket clientSocket = new Socket(IP, port);
+
             receiverThread = new Thread(new ClientMessageReceiverThread(this, clientSocket));
             receiverThread.start();
 
             senderThread = new Thread(new ClientMessageSenderThread(this, clientSocket));
             senderThread.start();
-
-            System.out.println("You connected to Chat.");
-            System.out.println("To send any message, please, write it and press \"Enter\".");
-            System.out.println("If you want to leave this Chat - just write \"/exit\".\n");
-
-            System.out.println("Please, Introduce yourself:");
-
         } catch (IOException e) {
-            throw new RuntimeException("Server hasn't launched or you made mistake in IP or port. =(\n" + e);
+            throw new RuntimeException("Server hasn't launched or you made mistake in IP or port.\n" + e);
         }
     }
 
     public synchronized void stopClient(Socket clientSocket) {
         receiverThread.interrupt();
         senderThread.interrupt();
-
         try {
             clientSocket.close();
         } catch (IOException e) {

@@ -2,30 +2,29 @@ package ru.netology.threads;
 
 import ru.netology.Server;
 
-import java.util.Scanner;
+import java.io.*;
+import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 
 public class ClientProcessorThread implements Runnable {
     private final Server SERVER;
+    private final ServerSocket SERVER_SOCKET;
 
-    public ClientProcessorThread(Server server) {
+    public ClientProcessorThread(Server server, ServerSocket serverSocket) {
         this.SERVER = server;
-
+        this.SERVER_SOCKET = serverSocket;
     }
 
     @Override
     public void run() {
-        try (Scanner scanner = new Scanner(System.in)) {
-            while (true) {
-                String message = scanner.nextLine();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
+            while (!SERVER_SOCKET.isClosed()) {
+                String message = reader.readLine();
                 String SERVER_NAME = "SERVER";
-                if (message.equalsIgnoreCase("/stop server")) {
-                    SERVER.onReceiveMessage(SERVER_NAME + ": " + message);
-                    SERVER.closeServer();
-                    Thread.currentThread().interrupt();
-                    break;
-                }
                 SERVER.onReceiveMessage(SERVER_NAME + ": " + message);
             }
+        } catch (IOException e) {
+            SERVER.onException("Client Process Exception", e);
         }
     }
 }

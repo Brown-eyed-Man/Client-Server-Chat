@@ -18,12 +18,8 @@ public class ClientMessageReceiverThread implements Runnable{
     @Override
     public void run() {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(CLIENT_SOCKET.getInputStream(), StandardCharsets.UTF_8))) {
-            while (true) {
+            while (!CLIENT_SOCKET.isClosed()) {
                 String response = reader.readLine();
-                if (response.equalsIgnoreCase("SERVER: /stop server")) {
-                    CLIENT.stopClient(CLIENT_SOCKET);
-                    break;
-                }
                 System.out.println(response);
             }
         } catch (IOException e) {
