@@ -3,9 +3,7 @@ package ru.netology;
 import ru.netology.threads.ClientMessageReceiverThread;
 import ru.netology.threads.ClientMessageSenderThread;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 public class Client {
@@ -38,16 +36,17 @@ public class Client {
 
         try {
             Socket clientSocket = new Socket(IP, port);
-            System.out.println("You connected to Chat.");
-            System.out.println("To send any message, please, write it and press \"Enter\".");
-            System.out.println("If you want to leave this Chat - just write \"/exit\".\n");
-            System.out.println("Please, Introduce yourself:");
-
             receiverThread = new Thread(new ClientMessageReceiverThread(this, clientSocket));
             receiverThread.start();
 
             senderThread = new Thread(new ClientMessageSenderThread(this, clientSocket));
             senderThread.start();
+
+            System.out.println("You connected to Chat.");
+            System.out.println("To send any message, please, write it and press \"Enter\".");
+            System.out.println("If you want to leave this Chat - just write \"/exit\".\n");
+
+            System.out.println("Please, Introduce yourself:");
 
         } catch (IOException e) {
             throw new RuntimeException("Server hasn't launched or you made mistake in IP or port. =(\n" + e);

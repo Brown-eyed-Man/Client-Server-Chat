@@ -2,12 +2,9 @@ package ru.netology.threads;
 
 import ru.netology.Client;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.Scanner;
 
 public class ClientMessageSenderThread implements Runnable {
     private final Client CLIENT;
@@ -21,12 +18,12 @@ public class ClientMessageSenderThread implements Runnable {
     @Override
     public void run() {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(CLIENT_SOCKET.getOutputStream(), StandardCharsets.UTF_8));
-             Scanner scanner = new Scanner(System.in)) {
-            String name = scanner.nextLine();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
+            String name = reader.readLine();
             sendMessage(writer, name);
 
             while (true) {
-                String message = scanner.nextLine();
+                String message = reader.readLine();
                 if (message.equalsIgnoreCase("/exit")) {
                     CLIENT.stopClient(CLIENT_SOCKET);
                     break;
@@ -44,7 +41,7 @@ public class ClientMessageSenderThread implements Runnable {
             writer.newLine();
             writer.flush();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            CLIENT.stopClient(CLIENT_SOCKET);
         }
     }
 }

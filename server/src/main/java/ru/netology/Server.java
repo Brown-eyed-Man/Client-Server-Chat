@@ -1,7 +1,6 @@
 package ru.netology;
 
-import ru.netology.threads.ClientProcessor;
-import ru.netology.threads.ConnectionReceiver;
+import ru.netology.threads.*;
 
 import java.io.*;
 import java.net.*;
@@ -11,33 +10,37 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class Server {
     private static ServerSocket SERVER_SOCKET;
     private static final int PORT = 27015;
-    private static final List<ConnectionReceiver> CLIENT_CONNECTIONS = new CopyOnWriteArrayList<>();
+    private static final List<ConnectionReceiverThread> CLIENT_CONNECTIONS = new CopyOnWriteArrayList<>();
+    private Thread clientProcessorThread;
+    private Thread connectionReceiverThread;
 
     public static void main(String[] args) {
         new Server();
     }
 
     private Server() {
-            try {
-                SERVER_SOCKET = new ServerSocket(PORT);
-                sendMessageToAllClients("Server has been launched.");
+        try {
+            SERVER_SOCKET = new ServerSocket(PORT);
+            sendMessageToAllClients("Server has been launched.");
 
-                new ClientProcessor(this);
+            clientProcessorThread = new Thread(new ClientProcessorThread(this));
+            clientProcessorThread.start();
 
-                while (true) {
-                    try {
-                        Socket socket = SERVER_SOCKET.accept();
-                        new ConnectionReceiver(this, socket);
-                    } catch (IOException e) {
-                        return;
-                    }
+            while (true) {
+                try {
+                    Socket socket = SERVER_SOCKET.accept();
+                    connectionReceiverThread = new Thread(new ConnectionReceiverThread(this, socket));
+                    connectionReceiverThread.start();
+                } catch (IOException e) {
+                    return;
                 }
-            } catch (IOException e) {
-                onException(e);
             }
+        } catch (IOException e) {
+            onException(e);
+        }
     }
 
-    public synchronized void onConnectionReady(ConnectionReceiver connection) {
+    public synchronized void onConnectionReady(ConnectionReceiverThread connection) {
         CLIENT_CONNECTIONS.add(connection);
         sendMessageToAllClients("New client connected: " + connection);
     }
@@ -46,7 +49,7 @@ public class Server {
         sendMessageToAllClients(value);
     }
 
-    public synchronized void onDisconnect(ConnectionReceiver connection) {
+    public synchronized void onDisconnect(ConnectionReceiverThread connection) {
         CLIENT_CONNECTIONS.remove(connection);
         sendMessageToAllClients(String.format("Client %s:%d (%s) disconnected.",
                 connection.getSOCKET().getInetAddress(),
@@ -61,10 +64,12 @@ public class Server {
 
     public synchronized void closeServer() {
         try {
-            for (ConnectionReceiver client : CLIENT_CONNECTIONS) {
+            for (ConnectionReceiverThread client : CLIENT_CONNECTIONS) {
                 CLIENT_CONNECTIONS.remove(client);
                 client.disconnect();
             }
+            clientProcessorThread.interrupt();
+            connectionReceiverThread.interrupt();
             SERVER_SOCKET.close();
             sendMessageToAllClients("Server has been stopped.\n");
         } catch (IOException e) {
@@ -75,7 +80,7 @@ public class Server {
     public void sendMessageToAllClients(String message) {
         System.out.println(message);
         ChatLogger.getInstance().log(message);
-        for (ConnectionReceiver client : CLIENT_CONNECTIONS) {
+        for (ConnectionReceiverThread client : CLIENT_CONNECTIONS) {
             client.sendMessage(message);
         }
     }

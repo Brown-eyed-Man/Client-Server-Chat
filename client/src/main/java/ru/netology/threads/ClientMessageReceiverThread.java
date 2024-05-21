@@ -2,9 +2,7 @@ package ru.netology.threads;
 
 import ru.netology.Client;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
@@ -22,11 +20,11 @@ public class ClientMessageReceiverThread implements Runnable{
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(CLIENT_SOCKET.getInputStream(), StandardCharsets.UTF_8))) {
             while (true) {
                 String response = reader.readLine();
-                System.out.println(response);
                 if (response.equalsIgnoreCase("SERVER: /stop server")) {
                     CLIENT.stopClient(CLIENT_SOCKET);
                     break;
                 }
+                System.out.println(response);
             }
         } catch (IOException e) {
             CLIENT.stopClient(CLIENT_SOCKET);
