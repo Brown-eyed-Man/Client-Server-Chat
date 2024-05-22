@@ -29,7 +29,11 @@ public class ChatLogger {
         }
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(loggerFilePath, true))) {
             String currentTime = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss").format(LocalDateTime.now());
-            writer.write(String.format("[%s] %s", currentTime, message));
+            if (message.equals("Server has been launched.")) {
+                writer.write(String.format("\n[%s] %s", currentTime, message));
+            } else {
+                writer.write(String.format("[%s] %s", currentTime, message));
+            }
             writer.newLine();
             writer.flush();
         } catch (IOException e) {
